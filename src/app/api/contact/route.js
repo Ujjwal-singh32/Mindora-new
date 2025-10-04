@@ -30,6 +30,7 @@ export async function POST(req) {
     });
 
     // ✅ Email to Admin
+    // console.log
     await transporter.sendMail({
       from: `"Contact Form" <${process.env.EMAIL_USER}>`,
       to: process.env.ADMIN_EMAIL, // Admin email
