@@ -14,7 +14,7 @@ export async function POST(req) {
 
     // Upload the file to the "pdfs" bucket
     const { data, error } = await supabaseServer.storage
-      .from("pdfs")
+      .from("short-notes")
       .upload(filename, buffer, {
         contentType: req.headers.get("content-type") || "application/pdf",
         upsert: true, // overwrite if file exists
