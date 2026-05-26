@@ -16,8 +16,8 @@ export default function ChatWidget({ roomId, userName }) {
   useEffect(() => {
     if (!roomId || !userName) return;
 
-    // socketRef.current = io("https://mindora-new-1.onrender.com");
-    socketRef.current = io("http://localhost:3001");
+    socketRef.current = io("https://mindora-new-1.onrender.com");
+    //socketRef.current = io("http://localhost:3001");
     socketRef.current.emit("join-room", { roomId, userName });
 
     socketRef.current.on("receive-message", (msgData) => {
