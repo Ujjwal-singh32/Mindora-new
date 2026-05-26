@@ -18,7 +18,13 @@ import UploadedImages from "@/components/roomFeatures/UploadedImages";
 import ShortNotes from "@/components/roomFeatures/ShortNotes";
 import QuizGenerator from "@/components/roomFeatures/GenerateQuiz";
 import AttemptQuiz from "@/components/roomFeatures/AttemptQuiz";
-import Whiteboard from "@/components/roomFeatures/Whiteboard";
+import dynamic from 'next/dynamic';
+
+// Replace your existing Whiteboard import with this:
+const Whiteboard = dynamic(
+  () => import('@/components/roomFeatures/Whiteboard'),
+  { ssr: false }
+);
 import LeaderboardPageDummy from "@/components/roomFeatures/ShowLeaderboard";
 import AnnouncementsPage from "@/components/roomFeatures/Announcements";
 import UploadAnnouncement from "@/components/roomFeatures/AnnounceToRoom";
@@ -29,22 +35,22 @@ import {
 } from "lucide-react";
 
 const sidebarOptions = [
-  { label: "Members",          icon: Users      },
-  { label: "Invite Members",   icon: UserPlus   },
-  { label: "Upload Notes",     icon: Upload     },
-  { label: "Upload Image",     icon: Image      },
-  { label: "Add Links",        icon: Link2      },
-  { label: "Generate Quiz",    icon: Brain      },
-  { label: "Uploaded Notes",   icon: FileText   },
-  { label: "Uploaded Images",  icon: Images     },
-  { label: "Links",            icon: Youtube    },
-  { label: "Short Notes",      icon: StickyNote },
-  { label: "Attempt Quiz",     icon: PenLine    },
-  { label: "Leaderboard",      icon: Trophy     },
-  { label: "Voice Call",       icon: Mic        },
-  { label: "Whiteboard",       icon: Radio      },
-  { label: "Announce To Room", icon: Megaphone  },
-  { label: "Announcements",    icon: Bell       },
+  { label: "Members", icon: Users },
+  { label: "Invite Members", icon: UserPlus },
+  { label: "Upload Notes", icon: Upload },
+  { label: "Upload Image", icon: Image },
+  { label: "Add Links", icon: Link2 },
+  { label: "Generate Quiz", icon: Brain },
+  { label: "Uploaded Notes", icon: FileText },
+  { label: "Uploaded Images", icon: Images },
+  { label: "Links", icon: Youtube },
+  { label: "Short Notes", icon: StickyNote },
+  { label: "Attempt Quiz", icon: PenLine },
+  { label: "Leaderboard", icon: Trophy },
+  { label: "Voice Call", icon: Mic },
+  { label: "Whiteboard", icon: Radio },
+  { label: "Announce To Room", icon: Megaphone },
+  { label: "Announcements", icon: Bell },
 ];
 
 function SidebarContent({ sidebarRef, buttonRefs, selected, handleSelect }) {
@@ -144,21 +150,21 @@ export default function RoomFeaturesPage() {
   }, [id]);
 
   const componentsMap = {
-    "Members":          <Members roomId={id} />,
-    "Upload Notes":     <UploadNotes roomId={id} />,
-    "Invite Members":   <InviteMembers roomId={id} />,
-    "Voice Call":       <VoiceChannel roomId={id} userId={userId} />,
-    "Add Links":        <UploadLink roomId={id} />,
-    "Upload Image":     <UploadImage roomId={id} />,
-    "Uploaded Notes":   <UploadedNotes roomId={id} />,
-    "Links":            <UploadedLinks roomId={id} />,
-    "Uploaded Images":  <UploadedImages roomId={id} />,
-    "Short Notes":      <ShortNotes roomId={id} />,
-    "Generate Quiz":    <QuizGenerator roomId={id} />,
-    "Attempt Quiz":     <AttemptQuiz roomId={id} />,
-    "Leaderboard":      <LeaderboardPageDummy roomId={id} />,
-    "Whiteboard":       <Whiteboard roomId={id} />,
-    "Announcements":    <AnnouncementsPage roomId={id} />,
+    "Members": <Members roomId={id} />,
+    "Upload Notes": <UploadNotes roomId={id} />,
+    "Invite Members": <InviteMembers roomId={id} />,
+    "Voice Call": <VoiceChannel roomId={id} userId={userId} />,
+    "Add Links": <UploadLink roomId={id} />,
+    "Upload Image": <UploadImage roomId={id} />,
+    "Uploaded Notes": <UploadedNotes roomId={id} />,
+    "Links": <UploadedLinks roomId={id} />,
+    "Uploaded Images": <UploadedImages roomId={id} />,
+    "Short Notes": <ShortNotes roomId={id} />,
+    "Generate Quiz": <QuizGenerator roomId={id} />,
+    "Attempt Quiz": <AttemptQuiz roomId={id} />,
+    "Leaderboard": <LeaderboardPageDummy roomId={id} />,
+    "Whiteboard": <Whiteboard roomId={id} />,
+    "Announcements": <AnnouncementsPage roomId={id} />,
     "Announce To Room": <UploadAnnouncement roomId={id} />,
   };
 
