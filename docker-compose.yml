@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Next.js Frontend
+  # Next.js Frontend (Development Mode)
+  # Next.js Frontend (Development Mode)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev   # <-- Point to the new dev file
+      network: host
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://backend:5000  
+      - NEXT_PUBLIC_SOCKET_URL=http://socket-server:3001  
+      - FLASK_URL=http://backend:5000  
+    depends_on:
+      - backend
+      - socket-server
+    # command: npm run dev <-- REMOVE this line
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next        
+    restart: unless-stopped
+
+  # Flask Backend
+  backend:
+    build:
+      context: ./flask-server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=app.py
+    volumes:
+      - ./flask-server:/app
+    restart: unless-stopped
+
+  # Socket.io Server
+  socket-server:
+    build:
+      context: ./socket-server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      - ./socket-server:/app
+      - /app/node_modules
+    restart: unless-stopped

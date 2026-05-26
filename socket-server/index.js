@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -53,13 +54,14 @@ io.on("connection", (socket) => {
     if (message.trim().startsWith("@")) {
       try {
         // Call Gemini API (example using Axios)
+      //  console.log("Using NEXTJS_URL:", process.env.NEXTJS_URL);
         const geminiResponse = await axios.post(
           `${process.env.NEXTJS_URL}/api/gemini-ans-for-chat`,
           {
             question: message, // send the whole message or extract after @
           }
         );
-
+      //  console.log("debug");
         const answer = geminiResponse.data.answer; // adjust based on API response
 
         const aiMsg = {
@@ -103,7 +105,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// const PORT = 3001;
-server.listen(process.env.PORT, () => {
-  console.log(`Socket.IO server running on port ${process.env.PORT}`);
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`Socket.IO server running on port ${PORT}`);
 });

@@ -1,16 +1,26 @@
 // /app/api/notes/create-room-quiz/route.js
+
 import axios from "axios";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { RoomQuizzes } from "@/models/quizModel";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash",
+});
 
 // Utility to call Gemini
 async function callGemini(prompt) {
-  const res = await axios.post(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    { contents: [{ parts: [{ text: prompt }] }] },
-    { headers: { "Content-Type": "application/json" } }
-  );
-
-  return res.data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    return text.trim();
+  } catch (err) {
+    console.error("Gemini API Error:", err.message);
+    throw new Error("Gemini generation failed");
+  }
 }
 
 // Utility to safely parse JSON from Gemini
@@ -20,8 +30,10 @@ function safeParseJSON(output) {
   } catch {
     const match = output.match(/\[.*\]/s);
     if (match) return JSON.parse(match[0]);
+
     const codeBlock = output.match(/```json([\s\S]*?)```/);
     if (codeBlock) return JSON.parse(codeBlock[1].trim());
+
     throw new Error("Invalid JSON from Gemini");
   }
 }
@@ -41,7 +53,7 @@ export async function POST(req) {
       roomId,
       createdBy,
     } = await req.json();
-    // console.log("pdfurl", pdfUrl);
+
     if (!pdfUrl || !topic || !title || !roomId || !createdBy) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
@@ -49,14 +61,14 @@ export async function POST(req) {
       );
     }
 
-    // 1️⃣ Extract text from PDF
+    // 1️⃣ Extract text from PDF (Flask server)
     const extractRes = await axios.post(
       `${process.env.FLASK_URL}/extract-pdf`,
-      {
-        url: pdfUrl,
-      }
+      { url: pdfUrl }
     );
+
     const text = extractRes.data?.text;
+
     if (!text) {
       return new Response(
         JSON.stringify({ error: "Failed to extract text from PDF" }),
@@ -64,31 +76,34 @@ export async function POST(req) {
       );
     }
 
-    // 2️⃣ Generate MCQs from Gemini
+    // 2️⃣ Generate MCQs using Gemini SDK
     const prompt = `
 You are an expert educational assistant.
 
-Task: Generate ${numQuestions} multiple-choice questions (MCQs) from the following text:
+Generate ${numQuestions} multiple-choice questions (MCQs) from the text below.
 
+TEXT:
 ${text}
 
-Instructions:
+Rules:
 - Each question must have exactly 4 options.
-- Indicate the correct option with its index (0-based).
-- Questions should be of ${difficulty} difficulty.
-- You may also add a few additional questions in your own words, but they must be strictly related to the above text.
-- Provide output in JSON array format:
+- "correct" must be the 0-based index.
+- Difficulty: ${difficulty}
+- Output ONLY valid JSON array.
+- No explanations.
+
+Format:
 [
   {
-    "question": "Question statement here",
-    "options": ["option1", "option2", "option3", "option4"],
+    "question": "Question text",
+    "options": ["A", "B", "C", "D"],
     "correct": 0
   }
 ]
-- Avoid explanations; only return JSON.
 `;
 
     const geminiOutput = await callGemini(prompt);
+
     let questions = [];
     try {
       questions = safeParseJSON(geminiOutput);
@@ -96,13 +111,13 @@ Instructions:
       console.error("Failed to parse Gemini output:", geminiOutput);
       return new Response(
         JSON.stringify({
-          error: "Failed to generate questions. Invalid JSON from Gemini.",
+          error: "Invalid JSON returned from Gemini",
         }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // 3️⃣ Prepare new quiz object
+    // 3️⃣ Prepare quiz object
     const newQuiz = {
       title,
       topic,
@@ -119,25 +134,28 @@ Instructions:
 
     // 4️⃣ Insert into RoomQuizzes
     let roomQuiz = await RoomQuizzes.findOne({ roomId });
+
     if (!roomQuiz) {
-      roomQuiz = new RoomQuizzes({ roomId, quizzes: [newQuiz] });
+      roomQuiz = new RoomQuizzes({
+        roomId,
+        quizzes: [newQuiz],
+      });
     } else {
       roomQuiz.quizzes.push(newQuiz);
     }
+
     await roomQuiz.save();
 
     return new Response(
       JSON.stringify({ message: "Quiz created", quiz: newQuiz }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Create quiz error:", err.message || err);
-    return new Response(JSON.stringify({ error: "Failed to create quiz" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+
+    return new Response(
+      JSON.stringify({ error: "Failed to create quiz" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }

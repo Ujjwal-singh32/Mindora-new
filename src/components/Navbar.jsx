@@ -1,14 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Bell, Menu, X, BookOpen } from "lucide-react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 
 export default function UserNavbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const { user } = useUser();
+  const drawerRef = useRef(null);
 
   const navLinks = [
     { label: "Home", href: "/" },
@@ -18,6 +19,30 @@ export default function UserNavbar() {
     { label: "My-Rooms", href: "/my-rooms" },
     { label: "Joined-Rooms", href: "/joined-rooms" },
   ];
+
+  // Scroll shadow
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close drawer on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isOpen]);
+
+  // Lock body scroll when drawer open
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
 
   // Fetch invites + requests count
   useEffect(() => {
@@ -43,141 +68,342 @@ export default function UserNavbar() {
   }, [user]);
 
   return (
-    <nav className="bg-gray-900 text-white shadow-lg shadow-yellow-500/40 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16">
-        <div className="flex justify-between items-center h-20">
-          {/* Left: Logo */}
-          <Link href="/">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-3xl sm:text-4xl font-bold text-yellow-500 cursor-pointer hover:text-yellow-400 transition-all duration-300">
-              Mindora
-            </h1>
-          </div>
-          </Link>
-          {/* Center: Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="relative font-medium text-white hover:text-yellow-400 transition-colors group"
+    <>
+      <nav
+        className="sticky top-0 z-50 transition-all duration-300"
+        style={{
+          background: scrolled
+            ? "rgba(6, 6, 18, 0.92)"
+            : "rgba(6, 6, 18, 0.60)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: scrolled
+            ? "0 1px 0 rgba(139,92,246,0.12), 0 8px 40px rgba(0,0,0,0.5)"
+            : "none",
+        }}
+      >
+        {/* Top accent line */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[1px]"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.6) 30%, rgba(99,102,241,0.6) 70%, transparent 100%)",
+          }}
+        />
+
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-16">
+          <div className="flex items-center justify-between h-[70px]">
+
+            {/* ── Logo ── */}
+            <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+              {/* Logo mark */}
+              <div
+                className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 transition-all duration-200 group-hover:scale-105"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+                  boxShadow: "0 0 12px rgba(124,58,237,0.4)",
+                }}
               >
-                {link.label}
-                <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-yellow-500 transition-all duration-300 group-hover:w-full"></span>
-              </a>
-            ))}
-          </div>
-
-          {/* Right: Notification + Auth */}
-          <div className="hidden md:flex items-center space-x-4">
-            <SignedIn>
-              <a
-                href="/notification"
-                className="relative p-2 rounded-full hover:bg-gray-800 transition-colors"
+                <BookOpen className="w-4 h-4 text-white" strokeWidth={2.2} />
+              </div>
+              {/* Wordmark */}
+              <span
+                className="text-[1.55rem] font-bold tracking-tight select-none"
+                style={{ color: "#f4f4ff", letterSpacing: "-0.025em" }}
               >
-                <Bell
-                  className={`w-6 h-6 ${
-                    notifCount > 0 ? "text-yellow-400 animate-pulse" : "text-yellow-500"
-                  }`}
-                />
-                {notifCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full animate-bounce">
-                    {notifCount}
-                  </span>
-                )}
-              </a>
-            </SignedIn>
+                Mindora
+              </span>
+            </Link>
 
-            <SignedOut>
-              <SignInButton>
-                <button className="px-5 py-2 bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-black font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-                  Sign In
-                </button>
-              </SignInButton>
-            </SignedOut>
+            {/* ── Desktop nav links — centered pill hovers ── */}
+            <div className="hidden md:flex items-center gap-0.5">
+              {navLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="relative px-3.5 py-2 rounded-lg text-[0.95rem] font-medium transition-all duration-150"
+                  style={{ color: "#8888aa" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#e8e8ff";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#8888aa";
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
 
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-          </div>
+            {/* ── Desktop right ── */}
+            <div className="hidden md:flex items-center gap-2.5">
+              <SignedIn>
+                <a
+                  href="/notification"
+                  className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150"
+                  style={{ color: "#7070a0" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                    e.currentTarget.style.color = "#c4b5fd";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "#7070a0";
+                  }}
+                >
+                  <Bell
+                    className={`w-[18px] h-[18px] ${notifCount > 0 ? "animate-pulse" : ""}`}
+                    style={{ color: "inherit" }}
+                  />
+                  {notifCount > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white"
+                      style={{ background: "#7c3aed" }}
+                    >
+                      {notifCount}
+                    </span>
+                  )}
+                </a>
+              </SignedIn>
 
-          {/* Mobile menu btn */}
-          <div className="md:hidden flex items-center">
-            <Button
-              variant="ghost"
-              className="text-white hover:text-yellow-400"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
+              {/* Divider */}
+              <SignedOut>
+                <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.08)" }} />
+              </SignedOut>
+
+              <SignedOut>
+                <SignInButton>
+                  <button
+                    className="px-4 py-2 rounded-lg text-[0.95rem] font-semibold transition-all duration-150"
+                    style={{
+                      background: "rgba(124,58,237,0.15)",
+                      color: "#c4b5fd",
+                      border: "1px solid rgba(139,92,246,0.35)",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(124,58,237,0.25)";
+                      e.currentTarget.style.borderColor = "rgba(139,92,246,0.6)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(124,58,237,0.15)";
+                      e.currentTarget.style.borderColor = "rgba(139,92,246,0.35)";
+                    }}
+                  >
+                    Sign In
+                  </button>
+                </SignInButton>
+                <Link href="/sign-up">
+                  <button
+                    className="px-4 py-2 rounded-lg text-[0.95rem] font-semibold transition-all duration-150"
+                    style={{
+                      background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+                      color: "#fff",
+                      border: "none",
+                      cursor: "pointer",
+                      boxShadow: "0 0 14px rgba(124,58,237,0.3)",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 22px rgba(124,58,237,0.5)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 0 14px rgba(124,58,237,0.3)")}
+                  >
+                    Get Started
+                  </button>
+                </Link>
+              </SignedOut>
+
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
+            </div>
+
+            {/* ── Mobile right ── */}
+            <div className="md:hidden flex items-center gap-2">
+              <SignedIn>
+                <a
+                  href="/notification"
+                  className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150"
+                  style={{ color: "#7070a0" }}
+                >
+                  <Bell
+                    className={`w-[18px] h-[18px] ${notifCount > 0 ? "animate-pulse" : ""}`}
+                    style={{ color: notifCount > 0 ? "#a78bfa" : "inherit" }}
+                  />
+                  {notifCount > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white"
+                      style={{ background: "#7c3aed" }}
+                    >
+                      {notifCount}
+                    </span>
+                  )}
+                </a>
+              </SignedIn>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "#9090b8",
+                }}
+                aria-label="Toggle menu"
               >
-                {isOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </Button>
+                {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              </button>
+            </div>
+
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile menu */}
-      {/* Mobile menu */}
-{isOpen && (
-  <div className="md:hidden bg-gray-800 border-t border-yellow-500">
-    {navLinks.map((link) => (
-      <a
-        key={link.label}
-        href={link.href}
-        className="block px-6 py-3 hover:bg-yellow-500 hover:text-white"
-      >
-        {link.label}
-      </a>
-    ))}
+      {/* ── Overlay ── */}
+      <div
+        className="fixed inset-0 z-40 md:hidden transition-opacity duration-300"
+        style={{
+          background: "rgba(0,0,0,0.6)",
+          backdropFilter: "blur(6px)",
+          opacity: isOpen ? 1 : 0,
+          pointerEvents: isOpen ? "auto" : "none",
+        }}
+        onClick={() => setIsOpen(false)}
+      />
 
-    {/* Notifications in mobile */}
-    <SignedIn>
-      <a
-        href="/notification"
-        className="block px-6 py-3 flex items-center space-x-2 hover:bg-yellow-500 hover:text-white"
+      {/* ── Mobile Drawer ── */}
+      <div
+        ref={drawerRef}
+        className="fixed top-0 right-0 h-full w-[280px] z-50 md:hidden flex flex-col"
+        style={{
+          transform: isOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.28s cubic-bezier(0.22,1,0.36,1)",
+          background: "#0b0b1a",
+          borderLeft: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: "-16px 0 48px rgba(0,0,0,0.7)",
+        }}
       >
-        <Bell
-          className={`w-5 h-5 ${
-            notifCount > 0 ? "text-yellow-400 animate-pulse" : "text-yellow-500"
-          }`}
+        {/* Drawer top accent */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[1px]"
+          style={{
+            background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.5), transparent)",
+          }}
         />
-        <span>Notifications</span>
-        {notifCount > 0 && (
-          <span className="ml-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-bounce">
-            {notifCount}
+
+        {/* Drawer header */}
+        <div
+          className="flex items-center justify-between px-5 h-[70px] flex-shrink-0"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex items-center justify-center w-7 h-7 rounded-md"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+                boxShadow: "0 0 10px rgba(124,58,237,0.35)",
+              }}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-white" strokeWidth={2.2} />
+            </div>
+            <span
+              className="text-xl font-bold tracking-tight"
+              style={{ color: "#f4f4ff", letterSpacing: "-0.025em" }}
+            >
+              Mindora
+            </span>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-150"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              color: "#7070a0",
+            }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Navigation section label */}
+        <div className="px-5 pt-5 pb-2">
+          <span
+            className="uppercase tracking-widest"
+            style={{ fontSize: "10px", fontWeight: 600, color: "#3d3d5c", letterSpacing: "0.12em" }}
+          >
+            Navigation
           </span>
-        )}
-      </a>
-    </SignedIn>
+        </div>
 
-    {/* Sign In / Sign Up in mobile for SignedOut users */}
-    <SignedOut>
-      <div className="flex flex-col px-6 py-3 space-y-2">
-        <SignInButton>
-          <button className="w-full px-4 py-2 bg-yellow-500 text-black font-semibold rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-            Sign In
-          </button>
-        </SignInButton>
-        <Link href="/sign-up">
-          <button className="w-full px-4 py-2 bg-transparent border border-yellow-500 text-yellow-500 font-semibold rounded-xl hover:bg-yellow-500 hover:text-black transition-all duration-300">
-            Sign Up
-          </button>
-        </Link>
+        {/* Nav links */}
+        <div className="flex-1 overflow-y-auto px-3 pb-4 flex flex-col gap-0.5">
+          {navLinks.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              onClick={() => setIsOpen(false)}
+              className="flex items-center px-3.5 py-2.5 rounded-lg text-[0.95rem] font-medium transition-all duration-150"
+              style={{ color: "#8888aa" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                e.currentTarget.style.color = "#e0e0f8";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "#8888aa";
+              }}
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+
+        {/* Auth footer */}
+        <div
+          className="px-4 pb-8 pt-4 flex flex-col gap-2.5 flex-shrink-0"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <SignedOut>
+            <SignInButton>
+              <button
+                className="w-full py-2.5 rounded-lg text-[0.95rem] font-semibold transition-all duration-150"
+                style={{
+                  background: "rgba(124,58,237,0.15)",
+                  color: "#c4b5fd",
+                  border: "1px solid rgba(139,92,246,0.35)",
+                  cursor: "pointer",
+                }}
+              >
+                Sign In
+              </button>
+            </SignInButton>
+            <Link href="/sign-up" onClick={() => setIsOpen(false)}>
+              <button
+                className="w-full py-2.5 rounded-lg text-[0.95rem] font-semibold transition-all duration-150"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+                  color: "#fff",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 0 16px rgba(124,58,237,0.3)",
+                }}
+              >
+                Get Started
+              </button>
+            </Link>
+          </SignedOut>
+
+          <SignedIn>
+            <div className="flex items-center gap-3 px-1 py-1">
+              <UserButton afterSignOutUrl="/" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium" style={{ color: "#c0c0e0" }}>Account</span>
+                <span className="text-[13px]" style={{ color: "#444460" }}>Manage your profile</span>
+              </div>
+            </div>
+          </SignedIn>
+        </div>
       </div>
-    </SignedOut>
-  </div>
-)}
-
-    </nav>
+    </>
   );
 }
